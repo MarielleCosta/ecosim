@@ -4,6 +4,8 @@
 #include "crow_all.h"
 #include "json.hpp"
 #include <random>
+#include <mutex>
+#include <thread>
 
 static const uint32_t NUM_ROWS = 15;
 
@@ -65,25 +67,34 @@ namespace nlohmann
 // Grid that contains the entities
 static std::vector<std::vector<entity_t>> entity_grid;
 
+std::mutex obj_mutex;
+
+
+// Planta
+void plant_life(){
+
+}
+
 int main()
 {
     crow::SimpleApp app;
 
-    // Endpoint to serve the HTML page
+    // Endpoint que serve a página HTML
     CROW_ROUTE(app, "/")
     ([](crow::request &, crow::response &res)
      {
-        // Return the HTML content here
+        // Retorna o conteúdo HTML
         res.set_static_file_info_unsafe("../public/index.html");
         res.end(); });
 
+    // Endpoint que inicia a simulação, com os parâmetros estabelecidos
     CROW_ROUTE(app, "/start-simulation")
         .methods("POST"_method)([](crow::request &req, crow::response &res)
                                 { 
-        // Parse the JSON request body
+        // Faz o parse no body do JSON
         nlohmann::json request_body = nlohmann::json::parse(req.body);
 
-       // Validate the request body 
+       // Valida o número total de entidades no body
         uint32_t total_entinties = (uint32_t)request_body["plants"] + (uint32_t)request_body["herbivores"] + (uint32_t)request_body["carnivores"];
         if (total_entinties > NUM_ROWS * NUM_ROWS) {
         res.code = 400;
@@ -92,14 +103,69 @@ int main()
         return;
         }
 
-        // Clear the entity grid
+        // Limpa o grid de entidades
         entity_grid.clear();
         entity_grid.assign(NUM_ROWS, std::vector<entity_t>(NUM_ROWS, { empty, 0, 0}));
         
         // Create the entities
         // <YOUR CODE HERE>
+        
+        int i, row, col;
 
-        // Return the JSON representation of the entity grid
+        // plants
+        for(i = 0; i < (uint32_t)request_body["plants"]; i++){
+            static std::random_device rd;
+            static std::mt19937 gen(rd());
+            std::uniform_int_distribution<> dis(0, 14);
+            row = dis(gen);
+            col = dis(gen);
+
+            while(!entity_grid[row][col].type == empty){
+                row = dis(gen);
+                col = dis(gen);
+            }
+            
+            entity_grid[row][col].type = plant;
+            entity_grid[row][col].age = 0; 
+        }
+
+        // herbivores
+        for(i = 0; i < (uint32_t)request_body["herbivores"]; i++){
+            static std::random_device rd;
+            static std::mt19937 gen(rd());
+            std::uniform_int_distribution<> dis(0, 14);
+            row = dis(gen);
+            col = dis(gen);
+
+            while(!entity_grid[row][col].type == empty){
+                row = dis(gen);
+                col = dis(gen);
+            }
+            
+            entity_grid[row][col].type = herbivore;
+            entity_grid[row][col].age = 0;
+            entity_grid[row][col].energy = 100; 
+        }
+
+        // carnivores
+        for(i = 0; i < (uint32_t)request_body["carnivores"]; i++){
+            static std::random_device rd; //cria item aleatório
+            static std::mt19937 gen(rd()); //inicializa o gerador de aletórios
+            std::uniform_int_distribution<> dis(0, 14); //Gera número alatório entre 0 e 14
+            row = dis(gen);
+            col = dis(gen);
+
+            while(!entity_grid[row][col].type == empty){
+                row = dis(gen);
+                col = dis(gen);
+            }
+            
+            entity_grid[row][col].type = carnivore;
+            entity_grid[row][col].age = 0;
+            entity_grid[row][col].energy = 100;
+        }
+
+        // Retorna o JSON que representa o grid de entidades
         nlohmann::json json_grid = entity_grid; 
         res.body = json_grid.dump();
         res.end(); });
@@ -113,7 +179,7 @@ int main()
         
         // <YOUR CODE HERE>
         
-        // Return the JSON representation of the entity grid
+        // Retorna a representação do grid em JSON
         nlohmann::json json_grid = entity_grid; 
         return json_grid.dump(); });
     app.port(8080).run();
