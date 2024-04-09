@@ -69,9 +69,34 @@ static std::vector<std::vector<entity_t>> entity_grid;
 
 std::mutex obj_mutex;
 
+bool random_action(float probability) {
+    static std::random_device rd;
+    static std::mt19937 gen(rd());
+    std::uniform_real_distribution<> dis(0.0, 1.0);
+    return dis(gen) < probability;
+}
 
 // Planta
-void plant_life(){
+void plant_life(int row, int col){
+    entity_grid[row][col].age++;
+    if(entity_grid[row][col].age > PLANT_MAXIMUM_AGE){
+        entity_grid[row][col].type = empty;
+        entity_grid[row][col].age = 0;
+        entity_grid[row][col].energy = 0;
+        return;
+    }
+
+    
+}
+
+// Herbivoro
+void herbivore_life(int row, int col){
+
+}
+
+// Carnivoro
+void carnivore_life(int row, int col){
+
 
 }
 
@@ -116,7 +141,7 @@ int main()
         for(i = 0; i < (uint32_t)request_body["plants"]; i++){
             static std::random_device rd;
             static std::mt19937 gen(rd());
-            std::uniform_int_distribution<> dis(0, 14);
+            std::uniform_int_distribution<> dis(0, NUM_ROWS - 1 );
             row = dis(gen);
             col = dis(gen);
 
@@ -127,13 +152,14 @@ int main()
             
             entity_grid[row][col].type = plant;
             entity_grid[row][col].age = 0; 
+            std::thread plant_thread(plant_life, row, col); 
         }
 
         // herbivores
         for(i = 0; i < (uint32_t)request_body["herbivores"]; i++){
             static std::random_device rd;
             static std::mt19937 gen(rd());
-            std::uniform_int_distribution<> dis(0, 14);
+            std::uniform_int_distribution<> dis(0, NUM_ROWS - 1);
             row = dis(gen);
             col = dis(gen);
 
@@ -144,14 +170,15 @@ int main()
             
             entity_grid[row][col].type = herbivore;
             entity_grid[row][col].age = 0;
-            entity_grid[row][col].energy = 100; 
+            entity_grid[row][col].energy = 100;
+            std::thread herb_thread(herbivore_life, row, col); 
         }
 
         // carnivores
         for(i = 0; i < (uint32_t)request_body["carnivores"]; i++){
             static std::random_device rd; //cria item aleatório
             static std::mt19937 gen(rd()); //inicializa o gerador de aletórios
-            std::uniform_int_distribution<> dis(0, 14); //Gera número alatório entre 0 e 14
+            std::uniform_int_distribution<> dis(0, NUM_ROWS - 1); //Gera número alatório entre 0 e 14
             row = dis(gen);
             col = dis(gen);
 
@@ -163,6 +190,7 @@ int main()
             entity_grid[row][col].type = carnivore;
             entity_grid[row][col].age = 0;
             entity_grid[row][col].energy = 100;
+            std::thread carn_thread(carnivore_life, row, col);
         }
 
         // Retorna o JSON que representa o grid de entidades
