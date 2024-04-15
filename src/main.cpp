@@ -130,6 +130,7 @@ void herbivore_thread(int i, int j) {
         // Caso o herbívoro não tenha morrido, incrementa a idade
         entity_grid[i][j].age++;
         // Lógica de alimentação do herbívoro
+        // Come todos as plantas adjacentes
         // Frente
         if ((i + 1) < NUM_ROWS && entity_grid[i + 1][j].type == plant && random_action(HERBIVORE_EAT_PROBABILITY)) {
             entity_grid[i + 1][j] = {empty, 0, 0};
